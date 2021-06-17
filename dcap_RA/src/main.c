@@ -9,6 +9,7 @@
 #include "quote_verification.h"
 #include "secret_prov.h"
 
+
 int main() {
     struct ra_tls_ctx ctx = {0};
     int sgx_fd;
@@ -47,15 +48,16 @@ int main() {
     int ret = 0;
 //	ret = secret_provision_start("172.18.0.1:4433",
 //	ret = secret_provision_start("attestation.service.com:4433",
-	ret = secret_provision_start("172.18.0.1:4433",
-                             "certs/test-ca-sha256.crt", &ctx, quote_buffer,quote_size);
+    ret = secret_provision_start("172.18.0.1:4433",
+          "certs/test-ca-sha256.crt", &ctx, quote_buffer,quote_size);
 
-  if (ret < 0) {
+    if (ret < 0) {
        printf("[error] secret_provision_start() returned %d\n", ret);
     }
+
+    uint8_t* secret1   = NULL;
+    size_t secret1_size = 0;
     ret = secret_provision_get(&secret1, &secret1_size);
-    // uint8_t key[16];
-    auto key = msg_to_key( secret1);
     printf("recived key is : %s \n", secret1);
 
     return 0;
