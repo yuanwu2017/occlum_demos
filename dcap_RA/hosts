@@ -1,0 +1,5 @@
+127.0.0.1 occlum-node
+172.18.0.1 attestation.service.com
+127.0.0.1 localhost
+::1 occlum-node
+::1 localhost

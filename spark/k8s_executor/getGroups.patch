@@ -1,0 +1,151 @@
+From dc94f32ff30035b01197f93d084021121ae46dfc Mon Sep 17 00:00:00 2001
+From: "zongmin.gu" <zongmin.gzm@antgroup.com>
+Date: Wed, 21 Apr 2021 09:53:53 +0800
+Subject: [PATCH] Add getgroups syscall
+
+---
+ src/libos/src/process/syscalls.rs    | 11 +++++++
+ src/libos/src/syscall/mod.rs         |  7 +++--
+ test/Makefile                        |  2 +-
+ test/{uname => system_info}/Makefile |  0
+ test/system_info/main.c              | 47 ++++++++++++++++++++++++++++
+ test/uname/main.c                    | 14 ---------
+ 6 files changed, 63 insertions(+), 18 deletions(-)
+ rename test/{uname => system_info}/Makefile (100%)
+ create mode 100644 test/system_info/main.c
+ delete mode 100644 test/uname/main.c
+
+diff --git a/src/libos/src/process/syscalls.rs b/src/libos/src/process/syscalls.rs
+index 12bb85c9f92..8561138afa2 100644
+--- a/src/libos/src/process/syscalls.rs
++++ b/src/libos/src/process/syscalls.rs
+@@ -399,3 +399,14 @@ pub fn do_geteuid() -> Result<isize> {
+ pub fn do_getegid() -> Result<isize> {
+     Ok(0)
+ }
++
++// Occlum is a single user enviroment, so only group 0 is supported
++pub fn do_getgroups(size: isize, buf_ptr: *mut u32) -> Result<isize> {
++    if size > 0 {
++        let group_list = unsafe { std::slice::from_raw_parts_mut(buf_ptr, size as usize) };
++        group_list[0] = 0;
++    }
++
++    //Occlum only has 1 group
++    Ok(1)
++}
+diff --git a/src/libos/src/syscall/mod.rs b/src/libos/src/syscall/mod.rs
+index 745e51d278b..fb0f3403fc0 100644
+--- a/src/libos/src/syscall/mod.rs
++++ b/src/libos/src/syscall/mod.rs
+@@ -41,8 +41,9 @@ use crate::net::{
+ };
+ use crate::process::{
+     do_arch_prctl, do_clone, do_exit, do_exit_group, do_futex, do_getegid, do_geteuid, do_getgid,
+-    do_getpgid, do_getpid, do_getppid, do_gettid, do_getuid, do_prctl, do_set_tid_address,
+-    do_spawn_for_glibc, do_spawn_for_musl, do_wait4, pid_t, FdOp, SpawnFileActions, ThreadStatus,
++    do_getgroups, do_getpgid, do_getpid, do_getppid, do_gettid, do_getuid, do_prctl,
++    do_set_tid_address, do_spawn_for_glibc, do_spawn_for_musl, do_wait4, pid_t, FdOp,
++    SpawnFileActions, ThreadStatus,
+ };
+ use crate::sched::{do_getcpu, do_sched_getaffinity, do_sched_setaffinity, do_sched_yield};
+ use crate::signal::{
+@@ -199,7 +200,7 @@ macro_rules! process_syscall_table_with_callback {
+             (Setsid = 112) => handle_unsupported(),
+             (Setreuid = 113) => handle_unsupported(),
+             (Setregid = 114) => handle_unsupported(),
+-            (Getgroups = 115) => handle_unsupported(),
++            (Getgroups = 115) => do_getgroups(size: isize, buf_ptr: *mut u32),
+             (Setgroups = 116) => handle_unsupported(),
+             (Setresuid = 117) => handle_unsupported(),
+             (Getresuid = 118) => handle_unsupported(),
+diff --git a/test/Makefile b/test/Makefile
+index d0574f9c760..1fbbc18183c 100644
+--- a/test/Makefile
++++ b/test/Makefile
+@@ -16,7 +16,7 @@ FAIL_LOG = $(BUILD_DIR)/test/.fail
+ TEST_DEPS := client data_sink
+ # Tests: need to be compiled and run by test-% target
+ TESTS ?= env empty hello_world malloc mmap file fs_perms getpid spawn sched pipe time \
+-	truncate readdir mkdir open stat link symlink chmod chown tls pthread uname rlimit \
++	truncate readdir mkdir open stat link symlink chmod chown tls pthread system_info rlimit \
+ 	server server_epoll unix_socket cout hostfs cpuid rdtsc device sleep exit_group \
+ 	ioctl fcntl eventfd emulate_syscall access signal sysinfo prctl rename procfs
+ # Benchmarks: need to be compiled and run by bench-% target
+diff --git a/test/uname/Makefile b/test/system_info/Makefile
+similarity index 100%
+rename from test/uname/Makefile
+rename to test/system_info/Makefile
+diff --git a/test/system_info/main.c b/test/system_info/main.c
+new file mode 100644
+index 00000000000..a4330077e54
+--- /dev/null
++++ b/test/system_info/main.c
+@@ -0,0 +1,47 @@
++#include <sys/utsname.h>
++#include <stdio.h>
++#include <unistd.h>
++#include "test.h"
++
++static int test_uname() {
++    struct utsname name;
++    uname(&name);
++    printf("sysname = %s\n", (const char *)&name.sysname);
++    printf("nodename = %s\n", (const char *)&name.nodename);
++    printf("release = %s\n", (const char *)&name.release);
++    printf("version = %s\n", (const char *)&name.version);
++    printf("machine = %s\n", (const char *)&name.machine);
++    printf("domainname = %s\n", (const char *)&name.__domainname);
++
++    return 0;
++}
++
++static int test_getgroups() {
++    int group_num = getgroups(0, NULL);
++    if (group_num <= 0) {
++        return -1;
++    }
++
++    gid_t *group_list = (gid_t *)malloc(sizeof(gid_t) * group_num);
++    group_list[0] = 1;
++
++    group_num = getgroups(group_num, group_list);
++
++    printf("group_num %d group %d\n", group_num, group_list[0]);
++    if (group_num != 1 || group_list[0] != 0) {
++        return -1;
++    }
++}
++
++// ============================================================================
++// Test suite main
++// ============================================================================
++
++static test_case_t test_cases[] = {
++    TEST_CASE(test_uname),
++    TEST_CASE(test_getgroups),
++};
++
++int main(int argc, const char *argv[]) {
++    return test_suite_run(test_cases, ARRAY_SIZE(test_cases));
++}
+diff --git a/test/uname/main.c b/test/uname/main.c
+deleted file mode 100644
+index f487ca8cca7..00000000000
+--- a/test/uname/main.c
++++ /dev/null
+@@ -1,14 +0,0 @@
+-#include <sys/utsname.h>
+-#include <stdio.h>
+-
+-int main(void) {
+-    struct utsname name;
+-    uname(&name);
+-    printf("sysname = %s\n", (const char *)&name.sysname);
+-    printf("nodename = %s\n", (const char *)&name.nodename);
+-    printf("release = %s\n", (const char *)&name.release);
+-    printf("version = %s\n", (const char *)&name.version);
+-    printf("machine = %s\n", (const char *)&name.machine);
+-    printf("domainname = %s\n", (const char *)&name.__domainname);
+-    return 0;
+-}

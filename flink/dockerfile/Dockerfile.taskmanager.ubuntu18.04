@@ -1,0 +1,22 @@
+FROM occlum/occlum:0.19.1-ubuntu18.04 AS occlum
+
+LABEL maintainer="Yuan Wu <yuan.wu@intel.com>"
+
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
+        openjdk-11-jdk \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download flink
+WORKDIR /root
+RUN wget https://archive.apache.org/dist/flink/flink-1.10.1/flink-1.10.1-bin-scala_2.11.tgz && \
+    tar -xvzf flink-1.10.1-bin-scala_2.11.tgz && \
+    rm flink-1.10.1-bin-scala_2.11.tgz 
+COPY taskmanager-conf.yaml /root/flink-conf.yaml 
+COPY build_flink.sh /root  
+COPY run_flink.sh /root  
+COPY hosts /root/ 
+RUN ./build_flink.sh && \
+    rm build_flink.sh && \
+    echo '/root/run_flink.sh' >> /root/.bashrc 

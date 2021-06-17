@@ -1,0 +1,84 @@
+From 4341882181d5ff5a5eff34da88f182fddc176131 Mon Sep 17 00:00:00 2001
+From: yuanwu <yuan.wu@intel.com>
+Date: Fri, 18 Dec 2020 15:04:53 +0000
+Subject: [PATCH] Add the buildmode support
+
+Signed-off-by: yuanwu <yuan.wu@intel.com>
+---
+ go.go   | 4 ++++
+ go.mod  | 2 ++
+ main.go | 5 ++++-
+ 3 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/go.go b/go.go
+index 2d25837..f7e6084 100644
+--- a/go.go
++++ b/go.go
+@@ -31,6 +31,7 @@ type CompileOpts struct {
+ 	ModMode     string
+ 	Cgo         bool
+ 	Rebuild     bool
++	Buildmode   string
+ 	GoCmd       string
+ }
+ 
+@@ -111,6 +112,9 @@ func GoCrossCompile(opts *CompileOpts) error {
+ 	if opts.ModMode != "" {
+ 		args = append(args, "-mod", opts.ModMode)
+ 	}
++	if opts.Buildmode != "" {
++		args = append(args, "-buildmode", opts.Buildmode)
++	}
+ 	args = append(args,
+ 		"-gcflags", opts.Gcflags,
+ 		"-ldflags", opts.Ldflags,
+diff --git a/go.mod b/go.mod
+index b865167..8bf8495 100644
+--- a/go.mod
++++ b/go.mod
+@@ -4,3 +4,5 @@ require (
+ 	github.com/hashicorp/go-version v1.0.0
+ 	github.com/mitchellh/iochan v1.0.0
+ )
++
++go 1.13
+diff --git a/main.go b/main.go
+index 9eca6a4..6d2772f 100644
+--- a/main.go
++++ b/main.go
+@@ -26,7 +26,7 @@ func realMain() int {
+ 	var platformFlag PlatformFlag
+ 	var tags string
+ 	var verbose bool
+-	var flagGcflags, flagAsmflags string
++	var flagGcflags, flagAsmflags, flagBuildmode string
+ 	var flagCgo, flagRebuild, flagListOSArch bool
+ 	var flagGoCmd string
+ 	var modMode string
+@@ -34,6 +34,7 @@ func realMain() int {
+ 	flags.Usage = func() { printUsage() }
+ 	flags.Var(platformFlag.ArchFlagValue(), "arch", "arch to build for or skip")
+ 	flags.Var(platformFlag.OSArchFlagValue(), "osarch", "os/arch pairs to build for or skip")
++	flags.StringVar(&flagBuildmode, "buildmode", "", "")
+ 	flags.Var(platformFlag.OSFlagValue(), "os", "os to build for or skip")
+ 	flags.StringVar(&ldflags, "ldflags", "", "linker flags")
+ 	flags.StringVar(&tags, "tags", "", "go build tags")
+@@ -161,6 +162,7 @@ func realMain() int {
+ 					ModMode:     modMode,
+ 					Cgo:         flagCgo,
+ 					Rebuild:     flagRebuild,
++					Buildmode:   flagBuildmode,
+ 					GoCmd:       flagGoCmd,
+ 				}
+ 
+@@ -214,6 +216,7 @@ Options:
+   -asmflags=""        Additional '-asmflags' value to pass to go build
+   -tags=""            Additional '-tags' value to pass to go build
+   -mod=""             Additional '-mod' value to pass to go build
++  -buildmode=""       Additional '-buildmode' value to pass to go build
+   -os=""              Space-separated list of operating systems to build for
+   -osarch=""          Space-separated list of os/arch pairs to build for
+   -osarch-list        List supported os/arch pairs for your Go version
+-- 
+2.17.1
+

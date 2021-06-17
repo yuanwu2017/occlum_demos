@@ -1,0 +1,29 @@
+FROM ubuntu:18.04
+LABEL maintainer="Yuan Wu <yuan.wu@intel.com>"
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64/
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \
+        openjdk-11-jdk \ 
+	wget \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Expose ports
+EXPOSE 8081
+EXPOSE 6123 
+
+# Download flink
+WORKDIR /root
+COPY jobmanager-conf.yaml /root/flink-conf.yaml
+COPY run_jobmanager.sh /root/run_jobmanager.sh 
+RUN wget https://archive.apache.org/dist/flink/flink-1.10.1/flink-1.10.1-bin-scala_2.11.tgz && \
+    tar -xvzf flink-1.10.1-bin-scala_2.11.tgz && \
+    rm flink-1.10.1-bin-scala_2.11.tgz && \
+    cp flink-conf.yaml flink-1.10.1/conf/ && \
+    rm flink-conf.yaml && \
+    echo '/root/run_jobmanager.sh' >> /root/.bashrc 
+    
+    
+
+
+

@@ -1,0 +1,52 @@
+From 1a4e0429a9644de1a1027799675b9be9fa699538 Mon Sep 17 00:00:00 2001
+From: yuanwu <yuan.wu@intel.com>
+Date: Fri, 18 Dec 2020 15:25:12 +0000
+Subject: [PATCH] Add the buildmode=pie in the vault
+
+Signed-off-by: yuanwu <yuan.wu@intel.com>
+---
+ Makefile         | 2 +-
+ scripts/build.sh | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 8e442e446..7d515e6dc 100644
+--- a/Makefile
++++ b/Makefile
+@@ -20,7 +20,7 @@ GOFMT_FILES?=$$(find . -name '*.go' | grep -v pb.go | grep -v vendor)
+ 
+ 
+ GO_VERSION_MIN=1.13.7
+-GO_CMD?=go
++GO_CMD?=occlum-go 
+ CGO_ENABLED?=0
+ ifneq ($(FDB_ENABLED), )
+ 	CGO_ENABLED=1
+diff --git a/scripts/build.sh b/scripts/build.sh
+index ef7e90358..9ad884644 100755
+--- a/scripts/build.sh
++++ b/scripts/build.sh
+@@ -47,18 +47,18 @@ echo "==> Removing old directory..."
+ rm -f bin/*
+ rm -rf pkg/*
+ mkdir -p bin/
+-
+ # Build!
+ # If GOX_PARALLEL_BUILDS is set, it will be used to add a "-parallel=${GOX_PARALLEL_BUILDS}" gox parameter
+ echo "==> Building..."
+ gox \
+     -osarch="${XC_OSARCH}" \
+     -gcflags "${GCFLAGS}" \
+-    -ldflags "${LD_FLAGS}-X github.com/hashicorp/vault/sdk/version.GitCommit='${GIT_COMMIT}${GIT_DIRTY}'" \
++    -ldflags "${LD_FLAGS}-X github.com/hashicorp/vault/sdk/version.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' -buildmode pie" \
+     -output "pkg/{{.OS}}_{{.Arch}}/vault" \
+     ${GOX_PARALLEL_BUILDS+-parallel="${GOX_PARALLEL_BUILDS}"} \
+     -tags="${BUILD_TAGS}" \
+     -gocmd="${GO_CMD}" \
++    -buildmode=pie \
+     .
+ 
+ # Move all the compiled things to the $GOPATH/bin
+-- 
+2.17.1
+
