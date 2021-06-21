@@ -8,8 +8,8 @@
     --conf spark.kubernetes.container.image=occlum_spark:3.0 \
 	--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark \
 	--conf spark.kubernetes.executor.deleteOnTermination=false \
-	--conf spark.kubernetes.driver.podTemplateFile=/home/yuanwu/executor.yaml \
-	--conf spark.kubernetes.executor.podTemplateFile=/home/yuanwu/executor.yaml \
+	--conf spark.kubernetes.driver.podTemplateFile=../executor.yaml \
+	--conf spark.kubernetes.executor.podTemplateFile=../executor.yaml \
     local:/bin/examples/jars/spark-examples_2.12-3.0.0.jar
     #local:/opt/spark/examples/jars/spark-examples_2.12-3.0.0.jar
     #local:/bin/examples/jars/spark-examples_2.12-3.0.0.jar

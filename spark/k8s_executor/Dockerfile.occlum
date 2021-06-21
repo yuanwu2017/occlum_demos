@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 FROM krallin/ubuntu-tini AS tini
-FROM occlum/occlum:0.22.0-ubuntu18.04 AS occlum
+FROM occlum/occlum:0.23.0-ubuntu18.04 AS occlum
 
 ARG spark_home=spark-3.0.0-bin-hadoop2.7
 ARG k8s_tests=${spark_home}/kubernetes/tests
@@ -39,24 +39,6 @@ RUN echo "auth required pam_wheel.so use_uid" >> /etc/pam.d/su && \
     touch /opt/spark/RELEASE
 
 
-WORKDIR /root
-COPY ./getGroups.patch /root
-COPY ./sendMsg.patch /root
-COPY ./fcntl.diff /root
-RUN git config --global user.email "yuan.wu@intel.com" && \
-	git config --global user.name "yuanwu"
-RUN git clone https://github.com/occlum/occlum.git && \
-    cd occlum && \
-    git checkout -b 0.22.0 0.22.0 && \
-    cp /root/getGroups.patch . && \ 
-    git am ./getGroups.patch && \
-    git am ../sendMsg.patch && \
-    git apply ../fcntl.diff && \
-    make submodule && \
-    OCCLUM_RELEASE_BUILD=1 make && \
-    make install && \
-    cp -r demos /root/demos && \
-    rm -rf /root/occlum
 
 COPY --from=tini /usr/local/bin/tini /sbin/tini
 COPY ${spark_home}/jars /opt/spark/jars

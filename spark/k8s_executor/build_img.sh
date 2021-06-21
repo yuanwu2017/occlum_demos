@@ -7,7 +7,7 @@ else
     tag=$1
 fi
 # You can remove build-arg http_proxy and https_proxy if your network doesn't need it
-proxy_server="http://child-prc.intel.com:913/" # your http proxy server
+proxy_server="" # your http proxy server
 
 DOCKER_BUILDKIT=0 docker build \
     -f ./Dockerfile.occlum . \

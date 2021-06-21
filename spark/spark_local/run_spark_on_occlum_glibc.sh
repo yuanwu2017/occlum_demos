@@ -1,8 +1,5 @@
 #!/bin/bash
 set -x
-#apt-get update
-#apt-get install -y openjdk-11-jdk
-
 BLUE='\033[1;34m'
 NC='\033[0m'
 occlum_glibc=/opt/occlum/glibc/lib/
