@@ -10,11 +10,11 @@ init_instance() {
     rm -rf occlum_instance_$postfix && mkdir occlum_instance_$postfix
     cd occlum_instance_$postfix
     occlum init
-    new_json="$(jq '.resource_limits.user_space_size = "16000MB" |
+    new_json="$(jq '.resource_limits.user_space_size = "32000MB" |
         .resource_limits.max_num_of_threads = 256 |
         .process.default_heap_size = "128MB" |
         .resource_limits.kernel_space_heap_size="256MB" |
-        .process.default_mmap_size = "15000MB" |
+        .process.default_mmap_size = "10000MB" |
         .entry_points = [ "/usr/lib/jvm/java-11-openjdk-amd64/bin" ] |
         .env.default = [ "LD_LIBRARY_PATH=/usr/lib/jvm/java-11-openjdk-amd64/lib/server:/usr/lib/jvm/java-11-openjdk-amd64/lib:/usr/lib/jvm/java-11-openjdk-amd64/../lib:/lib","SPARK_CONF_DIR=/bin/conf","SPARK_ENV_LOADED=1","PYTHONHASHSEED=0","SPARK_HOME=/bin","SPARK_SCALA_VERSION=2.12","SPARK_JARS_DIR=/bin/jars","LAUNCH_CLASSPATH=/bin/jars/*",""]' Occlum.json)" && \
     echo "${new_json}" > Occlum.json
@@ -24,6 +24,7 @@ init_instance() {
 build_spark() {
     # Copy JVM and class file into Occlum instance and build
     mkdir -p image/usr/lib/jvm
+    mkdir -p image/usr/bin
     cp -r /usr/lib/jvm/java-11-openjdk-amd64 image/usr/lib/jvm
     cp /lib/x86_64-linux-gnu/libz.so.1 image/lib
     cp /lib/x86_64-linux-gnu/libz.so.1 image/$occlum_glibc
@@ -37,6 +38,10 @@ build_spark() {
     cp -rf /etc/passwd image/etc/
     cp -rf /etc/group image/etc/
     cp -rf /etc/java-11-openjdk image/etc/
+    cp ../busybox/busybox image/usr/bin
+    pushd image/bin
+    ln -s /usr/bin/busybox rm
+    popd
     occlum build
 }
 
@@ -49,6 +54,7 @@ run_spark_test() {
 		-Xmx1g -XX:-UseCompressedOops -XX:MaxMetaspaceSize=256m \
 	        -XX:ActiveProcessorCount=2 \
 		-Divy.home="/tmp/.ivy" \
+		-Djdk.lang.Process.launchMechanism=posix_spawn \
 		-Dos.name="Linux" \
     		-cp '/bin/conf/:/bin/jars/*' -Xmx1g org.apache.spark.deploy.SparkSubmit --jars /bin/examples/jars/spark-examples_2.11-2.4.3.jar,/bin/examples/jars/scopt_2.11-3.7.0.jar --class org.apache.spark.examples.SparkPi spark-internal
 }
